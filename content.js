@@ -42,6 +42,7 @@ document.addEventListener('keyup', function(event) {
     const isRecording = result.isRecording || false;
     
     if (isRecording && (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') && isCharKey(event.key) && !isInExtensionPopup(event.target)) {
+
       console.log("keyup triggered (typing on inputs)")
       const { selector, selectorType } = getElementSelector(event.target);
       const actionData = createAction('type', selector, selectorType, event.target.value);
@@ -51,6 +52,15 @@ document.addEventListener('keyup', function(event) {
 
         // Get the last action
         const lastAction = actions.length > 0 ? actions[actions.length - 1] : null;
+
+        // Check if the last action is a "click" action and has the same selector
+        if (
+          lastAction &&
+          lastAction.type === 'click' &&
+          lastAction.selector === actionData.selector
+        ) {
+          actions = actions.slice(0, actions.length - 1); // Remove the last action since it was a click in the same input
+        }
 
         // Check if the last action is a "type" action and has the same selector
         if (

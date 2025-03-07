@@ -158,56 +158,70 @@ function disableTableClick(disable) {
 
 // Edit the selected action
 function editAction(index) {
+  hideActionButtons(); // Hide action buttons while the edit form is visible
   selectedActionIndex = index; // Save the selected index
+  document.getElementById('formTitle').textContent = 'Edit Action'; // Set form title to "Edit Action"
+  disableTableClick(true); // Disable table click
+
+  // Populate the fields with the selected action's details
   chrome.storage.local.get(['actions'], (data) => {
     const actions = data.actions || [];
     const action = actions[selectedActionIndex];
-
-    // Populate the fields with the selected action's details
     actionDropdown.value = action.type;
     locatorInput.value = action.selector;
-    valueInput.value = action.value || '';
-
     if (action.type === 'click' || action.type === 'Verify Element Exists') {
       valueInput.value = ''; // Clear value
       valueInput.disabled = true;
       valueInput.style.backgroundColor = "#f0f0f0"; // Grey out
     } else {
+      valueInput.value = action.value
       valueInput.disabled = false;
       valueInput.style.backgroundColor = ""; // Enable
     }
-
-    // Hide action buttons while the edit form is visible
-    actionButtonsContainer.style.display = 'none';
-
-    // Show the form
-    editForm.style.display = 'block';
-
-    // Disable table click
-    disableTableClick(true);
   });
+
+  editForm.style.display = 'block'; // Show the edit form
 }
 
 // Save the edited action
 saveButton.addEventListener('click', () => {
   if (selectedActionIndex !== null) {
-    chrome.storage.local.get(['actions'], (data) => {
-      const actions = data.actions || [];
+    // If the form is in "Add" mode, add the new action on top of the selected action
+    if (document.getElementById('formTitle').textContent === 'Add Action') {
+      chrome.storage.local.get(['actions'], function(result) {
+        let actions = result.actions || [];
+        let selectorType = detectSelectorType(locatorInput.value);
+        const newAction = createAction(actionDropdown.value, locatorInput.value, selectorType, valueInput.value || null);
 
-      // Get the selected action
-      const action = actions[selectedActionIndex];
-      action.type = actionDropdown.value;
-      action.selector = locatorInput.value;
-      action.value = valueInput.value || action.value;
-
-      // Update the action in storage
-      chrome.storage.local.set({ actions: actions }, () => {
+        actions.splice(selectedActionIndex, 0, newAction);  // Insert at the selected action index
+        // Save the updated actions list
+        chrome.storage.local.set({ actions: actions });
         loadActions(); // Reload the actions to show the updated values
-        editForm.style.display = 'none'; // Hide the edit form after saving
+        hideEditForm(); // Hide the edit form after saving
         resetRowSelection();
         disableTableClick(false); // Re-enable table clicks
       });
-    });
+    }
+    // If the form is in "Edit" mode, edit the selected action
+    else if (document.getElementById('formTitle').textContent === 'Edit Action') {
+      chrome.storage.local.get(['actions'], (data) => {
+        const actions = data.actions || [];
+
+        // Get the selected action and update it
+        const action = actions[selectedActionIndex];
+        action.type = actionDropdown.value;
+        action.selector = locatorInput.value;
+        action.value = valueInput.value || action.value;
+
+        // Then update the action in storage
+        chrome.storage.local.set({ actions: actions }, () => {
+          loadActions(); // Reload the actions to show the updated values
+          hideEditForm(); // Hide the edit form after saving
+          resetRowSelection();
+          disableTableClick(false); // Re-enable table clicks
+        });
+      });
+    }
   }
 });
 
@@ -240,12 +254,37 @@ function hideEditForm() {
 
 // ======================= EDIT UI ===========================
 
-// ======================= ACTION BUTTONS HANDLERS ===========================
+// ======================= ADD UI ===========================
 
 // Add button functionality
 addActionButton.addEventListener('click', () => {
-  // Add action logic will be here
+  addAction(selectedRows[0]);
 });
+
+// Edit the selected action
+function addAction(index) {
+  selectedActionIndex = index; // Save the selected index so that it can be saved later
+  loadAddActionForm(); // Change the actions form to the add action UI and display it in the UI
+}
+
+// Function to reset the form to the default state for adding an action
+function loadAddActionForm() {
+  hideActionButtons(); // Hide action buttons while the edit form is visible
+  document.getElementById('formTitle').textContent = 'Add Action'; // Set form title to "Add Action"
+
+  // Set Default Values
+  actionDropdown.value = 'click';  // Default action is 'click'
+  locatorInput.value = '';
+  valueInput.value = ''; 
+  valueInput.disabled = true;
+  valueInput.style.backgroundColor = "#f0f0f0"; 
+  editForm.style.display = 'block'; // Show the edit form
+  disableTableClick(true); // Disable table click
+}
+
+// ======================= ADD UI ===========================
+
+// ======================= ACTION BUTTONS HANDLERS ===========================
 
 // Edit button functionality
 editActionButton.addEventListener('click', () => {
@@ -292,11 +331,6 @@ function updateAction() {
     updateActionButtons();
   });
 }
-
-// Delete button functionality
-deleteActionButton.addEventListener('click', () => {
-  // Delete selected actions logic will be here
-});
 
 // Delete selected actions when the delete button is clicked
 deleteActionButton.addEventListener('click', () => {
@@ -455,3 +489,32 @@ exportCustomActionsButton.addEventListener('click', function() {
   });
 });
 // ============= EXPORT BUTTON LOGIC ===============
+
+// ============= HELPERS =================
+
+function detectSelectorType(selector) {
+  const cssPattern = /^[a-zA-Z0-9.#,:=\[\]()'"\s>+*~^$|=-]+$/;
+
+  // Check if the string contains an XPath pattern (starts with "//" or "/")
+  if (selector.startsWith('//') || selector.startsWith('/')) {
+    return 'xpath';
+  } else if (cssPattern.test(selector)) {
+    return 'css'
+  }
+  return null;
+}
+
+// Function to create an action entry
+function createAction(type, selector, selectorType, value = null) {
+  if (value != null && value != "") {
+    value = value.replace(/\n/g, '').replace(/\s+/g, ' ').trim();
+  }
+  let action = {
+    type: type,
+    selector: selector,
+    selectorType: selectorType,
+    value: value
+  };
+
+  return action;
+}
