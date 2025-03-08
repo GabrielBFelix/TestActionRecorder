@@ -126,8 +126,8 @@ clearActionsButton.addEventListener('click', function() {
 actionDropdown.addEventListener('change', () => {
   const selectedActionType = actionDropdown.value;
   
-  // If the action type is 'click' or 'Verify Element Exists', disable
-  if (selectedActionType === 'click' || selectedActionType === 'Verify Element Exists') {
+  // If the action type is 'click', 'Verify Element Exists' or Custom Action, disable the value input
+  if (selectedActionType === 'click' || selectedActionType === 'Verify Element Exists' || selectedActionType === 'Custom Action') {
     valueInput.value = '';
     valueInput.disabled = true;
     valueInput.style.backgroundColor = "#f0f0f0"; 
@@ -191,7 +191,14 @@ saveButton.addEventListener('click', () => {
       chrome.storage.local.get(['actions'], function(result) {
         let actions = result.actions || [];
         let selectorType = detectSelectorType(locatorInput.value);
-        const newAction = createAction(actionDropdown.value, locatorInput.value, selectorType, valueInput.value || null);
+
+        // If "Custom Action" action, store the typed action in the web locator and leave the value empty
+        let newAction;
+        if (actionDropdown.value === 'Custom Action') {
+          newAction = createAction('Custom Action', locatorInput.value, 'css'); // The action value is in the locator input
+        } else {
+          newAction = createAction(actionDropdown.value, locatorInput.value, selectorType, valueInput.value || null);
+        }
 
         actions.splice(selectedActionIndex, 0, newAction);  // Insert at the selected action index
         // Save the updated actions list
@@ -206,12 +213,18 @@ saveButton.addEventListener('click', () => {
     else if (document.getElementById('formTitle').textContent === 'Edit Action') {
       chrome.storage.local.get(['actions'], (data) => {
         const actions = data.actions || [];
+        const action = actions[selectedActionIndex]; // Get the selected action and update it
 
-        // Get the selected action and update it
-        const action = actions[selectedActionIndex];
-        action.type = actionDropdown.value;
-        action.selector = locatorInput.value;
-        action.value = valueInput.value || action.value;
+        // If the action is 'Custom Action', add the action to the locator field
+        if (actionDropdown.value === 'Custom Action') {
+          action.type = 'Custom Action';
+          action.selector = locatorInput.value;  // Store action in the selector field
+          action.value = '';  // No value for action
+        } else {
+          action.type = actionDropdown.value;
+          action.selector = locatorInput.value;
+          action.value = valueInput.value || action.value;
+        }
 
         // Then update the action in storage
         chrome.storage.local.set({ actions: actions }, () => {
@@ -465,7 +478,7 @@ exportCustomActionsButton.addEventListener('click', function() {
           customActionsText += `actions.verifyElementExists(actions, By.CssSelector("${action.selector}"));\n`;
         } else if (action.selectorType === 'xpath') {
           customActionsText += `actions.verifyElementExists(actions, By.XPath("${action.selector}"));\n`;
-        }
+        } 
       } else if (action.type === 'Verify Element Text') {
         // Clean up line breaks and unnecessary white spaces
         let cleanText = action.value.replace(/\n/g, '').replace(/\s+/g, ' ').trim();
@@ -475,6 +488,8 @@ exportCustomActionsButton.addEventListener('click', function() {
         } else if (action.selectorType === 'xpath') {
           customActionsText += `actions.getTextAndCompare(actions, By.XPath("${action.selector}"), "${cleanText}");\n`;
         }
+      } else if (action.type === 'Custom Action') {
+        customActionsText += `Custom Action: ${action.selector}\n`;
       }
     });
 
