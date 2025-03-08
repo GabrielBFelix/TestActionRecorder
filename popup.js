@@ -59,7 +59,7 @@ function loadActions() {
 
         // Create Value column (only for 'type' and other specific actions with values)
         const valueCell = document.createElement('td');
-        if (action.type === 'type' || action.type === 'sendKey' || action.type === 'select option' || action.type === 'Verify Element Text') {
+        if (action.type === 'type' || action.type === 'sendKey' || action.type === 'select option' || action.type === 'Verify Element Text' || action.type === 'Set System Time') {
           valueCell.textContent = action.value;
           valueCell.title = action.value;  // Full value in the title for hover effect
         } else if (action.type === 'click' || action.type === 'Verify Element Exists') {
@@ -131,8 +131,13 @@ actionDropdown.addEventListener('change', () => {
     valueInput.value = '';
     valueInput.disabled = true;
     valueInput.style.backgroundColor = "#f0f0f0"; 
+  } else if (selectedActionType === 'Set System Time') {
+    valueInput.disabled = false;
+    valueInput.style.backgroundColor = "";
+    locatorInput.value = '11:59:59';
+    valueInput.value = 'nextDay: false';
   } else {
-    // Enable the value field if the action type is any other action type
+    // Just enable the value field if the action type is any other action type
     valueInput.disabled = false;
     valueInput.style.backgroundColor = "";
   }
@@ -196,7 +201,8 @@ saveButton.addEventListener('click', () => {
         let newAction;
         if (actionDropdown.value === 'Custom Action') {
           newAction = createAction('Custom Action', locatorInput.value, 'CssSelector', ''); // The action value is in the locator input
-        } else {
+        }
+        else {
           newAction = createAction(actionDropdown.value, locatorInput.value, selectorType, valueInput.value || null);
         }
 
@@ -470,6 +476,8 @@ exportCustomActionsButton.addEventListener('click', function() {
         customActionsText += `actions.getTextAndCompare(actions, By.${action.selectorType}("${action.selector}"), "${cleanText}");\n`;
       } else if (action.type === 'Custom Action') {
         customActionsText += `Custom Action: ${action.selector};\n`;
+      } else if (action.type === 'Set System Time') {
+        customActionsText += `CustomActions.SetSystemTime("${action.selector}", actions.report, ${action.value});\n`;
       }
     });
 
