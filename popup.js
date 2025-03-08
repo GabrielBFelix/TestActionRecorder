@@ -195,7 +195,7 @@ saveButton.addEventListener('click', () => {
         // If "Custom Action" action, store the typed action in the web locator and leave the value empty
         let newAction;
         if (actionDropdown.value === 'Custom Action') {
-          newAction = createAction('Custom Action', locatorInput.value, 'css', ''); // The action value is in the locator input
+          newAction = createAction('Custom Action', locatorInput.value, 'CssSelector', ''); // The action value is in the locator input
         } else {
           newAction = createAction(actionDropdown.value, locatorInput.value, selectorType, valueInput.value || null);
         }
@@ -458,40 +458,18 @@ exportCustomActionsButton.addEventListener('click', function() {
     // Loop through each recorded action and convert it to the custom actions format
     actions.forEach(action => {
       if (action.type === 'click') {
-        if (action.selectorType === 'css') {
-          customActionsText += `actions.CustomClick(By.CssSelector("${action.selector}"));\n`;
-        } else if (action.selectorType === 'xpath') {
-          customActionsText += `actions.CustomClick(By.XPath("${action.selector}"));\n`;
-        }
+        customActionsText += `actions.CustomClick(By.${action.selectorType}("${action.selector}"));\n`;
       } else if (action.type === 'type' || action.type === 'sendKey') {
-        if (action.selectorType === 'css') {
-          customActionsText += `actions.CustomType(By.CssSelector("${action.selector}"), "${action.value}");\n`;
-        } else if (action.selectorType === 'xpath') {
-          customActionsText += `actions.CustomType(By.XPath("${action.selector}"), "${action.value}");\n`;
-        }
+        customActionsText += `actions.CustomType(By.${action.selectorType}("${action.selector}"), "${action.value}");\n`;
       } else if (action.type === 'select option') {
-        if (action.selectorType === 'css') {
-          customActionsText += `actions.SelectOption(By.CssSelector("${action.selector}"), "${action.value}");\n`;
-        } else if (action.selectorType === 'xpath') {
-          customActionsText += `actions.SelectOption(By.XPath("${action.selector}"), "${action.value}");\n`;
-        }
+        customActionsText += `actions.SelectOption(By.${action.selectorType}("${action.selector}"), "${action.value}");\n`;
       } else if (action.type === 'Verify Element Exists') {
-        if (action.selectorType === 'css') {
-          customActionsText += `actions.verifyElementExists(actions, By.CssSelector("${action.selector}"));\n`;
-        } else if (action.selectorType === 'xpath') {
-          customActionsText += `actions.verifyElementExists(actions, By.XPath("${action.selector}"));\n`;
-        } 
+        customActionsText += `actions.verifyElementExists(actions, By.${action.selectorType}("${action.selector}"));\n`;
       } else if (action.type === 'Verify Element Text') {
-        // Clean up line breaks and unnecessary white spaces
-        let cleanText = action.value.replace(/\n/g, '').replace(/\s+/g, ' ').trim();
-
-        if (action.selectorType === 'css') {
-          customActionsText += `actions.getTextAndCompare(actions, By.CssSelector("${action.selector}"), "${cleanText}");\n`;
-        } else if (action.selectorType === 'xpath') {
-          customActionsText += `actions.getTextAndCompare(actions, By.XPath("${action.selector}"), "${cleanText}");\n`;
-        }
+        let cleanText = action.value.replace(/\n/g, '').replace(/\s+/g, ' ').trim(); // Clean up line breaks and unnecessary white spaces
+        customActionsText += `actions.getTextAndCompare(actions, By.${action.selectorType}("${action.selector}"), "${cleanText}");\n`;
       } else if (action.type === 'Custom Action') {
-        customActionsText += `Custom Action: ${action.selector}\n`;
+        customActionsText += `Custom Action: ${action.selector};\n`;
       }
     });
 
@@ -514,9 +492,9 @@ function detectSelectorType(selector) {
 
   // Check if the string contains an XPath pattern (starts with "//" or "/")
   if (selector.startsWith('//') || selector.startsWith('/')) {
-    return 'xpath';
+    return 'XPath';
   } else if (cssPattern.test(selector)) {
-    return 'css'
+    return 'CssSelector'
   }
   return null;
 }

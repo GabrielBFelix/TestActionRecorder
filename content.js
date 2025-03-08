@@ -161,7 +161,7 @@ function isTextUnique(element) {
 
 function getElementSelector(element) {
   let selector = element.tagName.toLowerCase();
-  let selectorType = 'css';  // Default to CSS selector
+  let selectorType = 'CssSelector';  // Default to CSS selector
 
   // If the element has an id, return the id as the selector
   if (element.id && isIdUnique(element) && !isElementWithRandomId(element)) {
@@ -178,7 +178,7 @@ function getElementSelector(element) {
 
   // If the element text uniquely identifies the element, return it
   if (element.textContent.trim() && isTextUnique(element)) {
-    selectorType = 'xpath';
+    selectorType = 'XPath';
     selector = getTextSelector(element);
     return { selector, selectorType };
   }
