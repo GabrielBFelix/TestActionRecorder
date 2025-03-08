@@ -195,7 +195,7 @@ saveButton.addEventListener('click', () => {
         // If "Custom Action" action, store the typed action in the web locator and leave the value empty
         let newAction;
         if (actionDropdown.value === 'Custom Action') {
-          newAction = createAction('Custom Action', locatorInput.value, 'css'); // The action value is in the locator input
+          newAction = createAction('Custom Action', locatorInput.value, 'css', ''); // The action value is in the locator input
         } else {
           newAction = createAction(actionDropdown.value, locatorInput.value, selectorType, valueInput.value || null);
         }
@@ -219,10 +219,12 @@ saveButton.addEventListener('click', () => {
         if (actionDropdown.value === 'Custom Action') {
           action.type = 'Custom Action';
           action.selector = locatorInput.value;  // Store action in the selector field
+          action.selectorType = '';
           action.value = '';  // No value for action
         } else {
           action.type = actionDropdown.value;
           action.selector = locatorInput.value;
+          action.selectorType = detectSelectorType(locatorInput.value);
           action.value = valueInput.value || action.value;
         }
 
