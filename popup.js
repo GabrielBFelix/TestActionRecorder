@@ -1,6 +1,7 @@
 const toggleRecordingButton = document.getElementById('toggleRecording');
 const clearActionsButton = document.getElementById('clearActions');
 const exportCustomActionsButton = document.getElementById('exportCustomActions');
+const importLocatorsButton = document.getElementById('importLocatorsButton');
 const actionsTableBody = document.getElementById('actionsTable').querySelector('tbody');
 
 // Add/Edit Action Form
@@ -492,6 +493,118 @@ exportCustomActionsButton.addEventListener('click', function() {
   });
 });
 // ============= EXPORT BUTTON LOGIC ===============
+
+// LOCATORS IMPORT
+
+// Function to handle the file input
+importLocatorsButton.addEventListener('click', () => {
+  // Create an input element to open the file dialog
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.cs';
+
+  input.addEventListener('change', handleLocatorFile);
+  input.click();
+});
+
+function handleLocatorFile(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.readAsText(file);
+
+    reader.onload = function (event) {
+      const content = event.target.result;
+      try {
+        // Step 1: Parse the C# Locators file content
+        const locators = parseLocatorsFile(content);
+        // Step 2: Transform the structure into what it's needed in local.storage
+        const locatorArray = buildLocatorVariables(locators);
+        // Step 3: Save to local.storage
+        chrome.storage.local.set({ locators: locatorArray }, () => {
+          alert('Locators file has been successfully saved!');
+        });
+      } catch (err) {
+        alert('Error occurred while trying to load file.');
+      }
+    };
+  }
+}
+
+// Function to parse the C# Locators file into a structured object
+function parseLocatorsFile(fileContent) {
+  const locators = {};
+  const lines = fileContent.split('\n');
+
+  let currentClass = null; // To track current class
+
+  // Regex patterns to match the necessary parts
+  const classPattern = /public\s+static\s+class\s+(\w+)/;
+  const locatorPattern = /public\s+static\s+readonly\s+By\s+(\w+)\s*=\s*By\.(\w+)\("(.+?)"\);/;
+
+  lines.forEach(line => {
+    line = line.trim();
+
+    // Check if the line is a class declaration
+    const classMatch = line.match(classPattern);
+    if (classMatch) {
+      // When a class is found, update the current class
+      currentClass = classMatch[1];
+      locators[currentClass] = {}; // Initialize the current class in the locators object
+      return; // Skip the rest of the processing for this line
+    }
+
+    // Check if the line is a locator declaration
+    const locatorMatch = line.match(locatorPattern);
+    if (locatorMatch) {
+      const variableName = locatorMatch[1]; // e.g., ddUnit
+      const locatorType = locatorMatch[2]; // e.g., CssSelector
+      const locatorValue = locatorMatch[3]; // e.g., #ddUnit
+
+      if (currentClass) {
+        // If we're inside a class, store the locator inside the class
+        locators[currentClass][variableName] = {
+          type: locatorType,
+          value: locatorValue
+        };
+      } else {
+        // If no class, store directly in the root locators object
+        locators[variableName] = {
+          type: locatorType,
+          value: locatorValue
+        };
+      }
+    }
+  });
+
+  return locators;
+}
+
+
+// Recursive function to build locatorVariable paths
+function buildLocatorVariables(locators, path = "Locators") {
+  let result = [];
+
+  for (let key in locators) {
+    const locator = locators[key];
+
+    if (locator.type && locator.value) {
+      // If it's a locator variable, add it to the result with the full path
+      result.push({
+        locatorVariable: `${path}.${key}`,
+        locatorType: locator.type,
+        locatorValue: locator.value
+      });
+    } else {
+      // If it's a nested class, recursively process it
+      result = result.concat(buildLocatorVariables(locator, `${path}.${key}`));
+    }
+  }
+
+  return result;
+}
+
+// LOCATORS IMPORT
 
 // ============= HELPERS =================
 
