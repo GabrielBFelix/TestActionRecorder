@@ -457,41 +457,79 @@ helpButton.addEventListener('click', () => {
 
 // ============= EXPORT BUTTON LOGIC ===============
 // Handles the export custom actions button
-exportCustomActionsButton.addEventListener('click', function() {
-  chrome.storage.local.get(['actions'], function(result) {
-    const actions = result.actions || [];
-    let customActionsText = '';
+exportCustomActionsButton.addEventListener('click', function () {
+  // Get locators from local storage
+  chrome.storage.local.get(['locators'], function (locatorsResult) {
+    const locators = locatorsResult.locators || [];
 
-    // Loop through each recorded action and convert it to the custom actions format
-    actions.forEach(action => {
-      if (action.type === 'click') {
-        customActionsText += `actions.CustomClick(By.${action.selectorType}("${action.selector}"));\n`;
-      } else if (action.type === 'type' || action.type === 'sendKey') {
-        customActionsText += `actions.CustomType(By.${action.selectorType}("${action.selector}"), "${action.value}");\n`;
-      } else if (action.type === 'select option') {
-        customActionsText += `actions.SelectOption(By.${action.selectorType}("${action.selector}"), "${action.value}");\n`;
-      } else if (action.type === 'Verify Element Exists') {
-        customActionsText += `actions.verifyElementExists(actions, By.${action.selectorType}("${action.selector}"));\n`;
-      } else if (action.type === 'Verify Element Text') {
-        let cleanText = action.value.replace(/\n/g, '').replace(/\s+/g, ' ').trim(); // Clean up line breaks and unnecessary white spaces
-        customActionsText += `actions.getTextAndCompare(actions, By.${action.selectorType}("${action.selector}"), "${cleanText}");\n`;
-      } else if (action.type === 'Custom Action') {
-        customActionsText += `Custom Action: ${action.selector};\n`;
-      } else if (action.type === 'Set System Time') {
-        customActionsText += `CustomActions.SetSystemTime("${action.selector}", actions.report, ${action.value});\n`;
-      }
+    // Create a mapping from locator value to locator variable
+    const locatorMap = {};
+    locators.forEach(locator => {
+      locatorMap[locator.locatorValue] = locator.locatorVariable;
     });
 
-    // Create a Blob object and trigger download
-    const blob = new Blob([customActionsText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'CustomActions.txt';
-    link.click();
-    URL.revokeObjectURL(url);  // Clean up the object URL
+    // Get actions from local storage
+    chrome.storage.local.get(['actions'], function (result) {
+      const actions = result.actions || [];
+      let customActionsText = '';
+
+      // Loop through each recorded action and convert it to the custom actions format
+      actions.forEach(action => {
+        if (action.type === 'click') {
+          const matchingLocator = locatorMap[action.selector];
+          if (matchingLocator) {
+            customActionsText += `actions.CustomClick(${matchingLocator});\n`;
+          } else {
+            customActionsText += `actions.CustomClick(By.${action.selectorType}("${action.selector}"));\n`;
+          }
+        } else if (action.type === 'type' || action.type === 'sendKey') {
+          const matchingLocator = locatorMap[action.selector];
+          if (matchingLocator) {
+            customActionsText += `actions.CustomType(${matchingLocator}, "${action.value}");\n`;
+          } else {
+            customActionsText += `actions.CustomType(By.${action.selectorType}("${action.selector}"), "${action.value}");\n`;
+          }
+        } else if (action.type === 'select option') {
+          const matchingLocator = locatorMap[action.selector];
+          if (matchingLocator) {
+            customActionsText += `actions.SelectOption(${matchingLocator}, "${action.value}");\n`;
+          } else {
+            customActionsText += `actions.SelectOption(By.${action.selectorType}("${action.selector}"), "${action.value}");\n`;
+          }
+        } else if (action.type === 'Verify Element Exists') {
+          const matchingLocator = locatorMap[action.selector];
+          if (matchingLocator) {
+            customActionsText += `actions.verifyElementExists(actions, ${matchingLocator});\n`;
+          } else {
+            customActionsText += `actions.verifyElementExists(actions, By.${action.selectorType}("${action.selector}"));\n`;
+          }
+        } else if (action.type === 'Verify Element Text') {
+          let cleanText = action.value.replace(/\n/g, '').replace(/\s+/g, ' ').trim(); // Clean up line breaks and unnecessary white spaces
+          const matchingLocator = locatorMap[action.selector];
+          if (matchingLocator) {
+            customActionsText += `actions.getTextAndCompare(actions, ${matchingLocator}, "${cleanText}");\n`;
+          } else {
+            customActionsText += `actions.getTextAndCompare(actions, By.${action.selectorType}("${action.selector}"), "${cleanText}");\n`;
+          }
+        } else if (action.type === 'Custom Action') {
+          customActionsText += `Custom Action: ${action.selector};\n`;
+        } else if (action.type === 'Set System Time') {
+          customActionsText += `CustomActions.SetSystemTime("${action.selector}", actions.report, ${action.value});\n`;
+        }
+      });
+
+      // Create a Blob and trigger a download
+      const blob = new Blob([customActionsText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'CustomActions.txt';
+      link.click();
+      URL.revokeObjectURL(url);  // Clean up the object URL
+    });
   });
 });
+
 // ============= EXPORT BUTTON LOGIC ===============
 
 // LOCATORS IMPORT
