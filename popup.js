@@ -189,7 +189,7 @@ function editAction(index) {
   editForm.style.display = 'block'; // Show the edit form
 }
 
-// Save the edited action
+// Save the added / edited action
 saveButton.addEventListener('click', () => {
   if (selectedActionIndex !== null) {
     // If the form is in "Add" mode, add the new action on top of the selected action
@@ -207,9 +207,8 @@ saveButton.addEventListener('click', () => {
           newAction = createAction(actionDropdown.value, locatorInput.value, selectorType, valueInput.value || null);
         }
 
-        actions.splice(selectedActionIndex, 0, newAction);  // Insert at the selected action index
-        // Save the updated actions list
-        chrome.storage.local.set({ actions: actions });
+        actions.splice(selectedActionIndex + 1, 0, newAction);  // Insert after the selected action index
+        chrome.storage.local.set({ actions: actions }); // Save the updated actions list
         loadActions(); // Reload the actions to show the updated values
         hideEditForm(); // Hide the edit form after saving
         resetRowSelection();
