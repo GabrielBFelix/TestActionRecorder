@@ -213,7 +213,7 @@ function getElementSelector(element) {
     }
     // Check if a unique class is found
     else if (currentElement.className && isClassunique(currentElement)) {
-      selector = `.${currentElement.className.split(' ')[0]}${parentSelector}`;
+      selector = getClassSelector(currentElement);
       return { selector, selectorType };
     }
     // If the html tag is reached, add it to the selector
@@ -251,7 +251,8 @@ function isInExtensionPopup(targetElement) {
 const elementsWithRandomIds = [
   'buttonOkModalDialog',
   'buttonNoModalDialog',
-  'buttonCancelModalDialog'
+  'buttonCancelModalDialog',
+  'buttonExplainDoseCloseModalDialog'
 ];
 
 let lastRightClickedElement = null; // Store the last element that was right clicked

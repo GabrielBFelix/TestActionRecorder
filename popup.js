@@ -135,7 +135,7 @@ actionDropdown.addEventListener('change', () => {
   } else if (selectedActionType === 'Set System Time') {
     valueInput.disabled = false;
     valueInput.style.backgroundColor = "";
-    locatorInput.value = '11:59:59';
+    locatorInput.value = '11:59:00';
     valueInput.value = 'nextDay: false';
   } else {
     // Just enable the value field if the action type is any other action type
@@ -511,7 +511,7 @@ exportCustomActionsButton.addEventListener('click', function () {
             customActionsText += `actions.getTextAndCompare(actions, By.${action.selectorType}("${action.selector}"), "${cleanText}");\n`;
           }
         } else if (action.type === 'Custom Action') {
-          customActionsText += `Custom Action: ${action.selector};\n`;
+          customActionsText += `${action.selector};\n`;
         } else if (action.type === 'Set System Time') {
           customActionsText += `CustomActions.SetSystemTime("${action.selector}", actions.report, ${action.value});\n`;
         }
